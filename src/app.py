@@ -10,6 +10,7 @@ from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, People, Vehicle, Planets, Likes
 #from models import people
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -25,6 +26,11 @@ MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
 setup_admin(app)
+
+# Setup the Flask-JWT-Extended extension
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
+
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -135,6 +141,7 @@ def addFavPlanet(user_id):
 
 
 
+
 #[POST] /favorite/people/<int:planet_id> Añade una nueva people favorita al usuario actual con el people.id = people_id.
 
 
@@ -150,7 +157,60 @@ def addFavPlanet(user_id):
 #[DELETE] /favorite/planet/<int:planet_id> Elimina un planet favorito con el id = planet_id`.
 
 
+#-----------------------------------Auth system------------------------------------- 
+#1.Registro de usuario
+@app.route('/register', methods=['POST'])
+def user_register():
+   
+    
 
+    request_body = request.json #Traemos la informacion de la tabla al body
+    print(request_body) #Vemos lo que trae
+
+    #Creo el nuevo objeto, con la clase ""
+    # new_user = User(email = request_body['email'], password = request_body ['password'])
+
+    #Instancio el objeto
+    users = User.query.filter_by(email=request_body['email']).first()
+    print(users)
+
+    #Condicion para crear usuario
+    if users is None:
+        newUser = User(email = request_body ['email'], password = request_body ['password'])
+        db.session.add(newUser)
+        db.session.commit()
+    
+        return jsonify({'user': newUser.serialize()}), 200
+
+    return jsonify("usuario existente"), 400
+
+
+#2.Inicio de Sesión
+@app.route("/login", methods=["POST"])
+def login():
+    email = request.json.get("email", None)
+    password = request.json.get("password", None)
+
+    user = User.query.filter_by(email=email).first()
+
+    if user is None:
+        return jsonify({"msg": "usuario inexistente"}), 404
+
+    if password != user.password:
+        return jsonify({"msg": "Bad email or password"}), 401
+
+    access_token = create_access_token(identity=email)
+    return jsonify(access_token=access_token)
+
+#3.Validación:
+# Protect a route with jwt_required, which will kick out requests
+# without a valid JWT present.
+@app.route("/protected", methods=["GET"])
+@jwt_required()
+def protected():
+    # Access the identity of the current user with get_jwt_identity
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
 
 
 
