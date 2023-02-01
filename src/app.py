@@ -157,7 +157,7 @@ def addFavPlanet(user_id):
 #[DELETE] /favorite/planet/<int:planet_id> Elimina un planet favorito con el id = planet_id`.
 
 
-#-----------------------------------Auth system------------------------------------- 
+#-----------------------------------Auth system-------------------------------------- 
 #1.Registro de usuario
 @app.route('/register', methods=['POST'])
 def user_register():
